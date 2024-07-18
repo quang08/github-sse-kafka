@@ -15,11 +15,14 @@ def main():
             broker_address='localhost:19092',
             loglevel="DEBUG",
             producer_extra_config={
+                # measure  
                 "statistics.interval.ms": 3 * 100, # collect stats such as messages sent
                 "stats_cb": handle_stats, # processes and logs stats
                 "debug": "msg", # log message related information
+                # tuning
                 "linger.ms": 500, # amount of time to wait and collect message in a batch before sending the batch (balance between low latency and high throughput)
                 "batch.size": 1024 * 1024, # in bytes: 1 MB
+                "compression.type": "gzip", # readable string type like json can compress well and would help save storage cost, bandwdith: trade off CPU time to compress, for better network usage
             }
         )
 
