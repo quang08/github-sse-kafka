@@ -4,12 +4,22 @@ from pprint import pformat
 from requests_sse import EventSource
 from quixstreams import Application
 
+def handle_stats(msg):
+    stats = json.loads(msg)
+    logging.info("STATS: %s", pformat(stats))
+
 def main():
     logging.info("START")
 
     app = Application(
             broker_address='localhost:19092',
-            loglevel="DEBUG"
+            loglevel="DEBUG",
+            producer_extra_config={
+                 "statistics.interval.ms": 3 * 100, # collect stats such as messages sent
+                 "stats_sb": handle_stats, # processes and logs stats
+                 "debug": "msg", # log message related information
+                 "linger.ms": 500 # amount of time to wait and collect message in a batch before sending the batch (balance between low latency and high throughput)
+            }
         )
 
     with (
