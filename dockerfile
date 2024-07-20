@@ -14,7 +14,8 @@ COPY ./requirements.txt ./
 
 # Install dependencies
 # Adding `--no-cache-dir` to avoid storing unnecessary files and potentially reduce image size
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y openjdk-11-jdk-headless && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
