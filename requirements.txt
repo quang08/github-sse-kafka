@@ -1,0 +1,17 @@
+annotated-types==0.7.0
+certifi==2024.7.4
+charset-normalizer==3.3.2
+confluent-kafka==2.4.0
+idna==3.7
+orjson==3.10.6
+psycopg2-binary==2.9.9
+pydantic==2.7.4
+pydantic-settings==2.3.4
+pydantic_core==2.18.4
+python-dotenv==1.0.1
+quixstreams==2.7.0
+requests==2.32.3
+requests-sse==0.3.2
+rocksdict==0.3.23
+typing_extensions==4.12.2
+urllib3==2.2.2

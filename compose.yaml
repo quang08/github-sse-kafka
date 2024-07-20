@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   kafka-broker:
     image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
@@ -20,6 +21,7 @@ services:
       - 18082:18082
       - 19092:19092
       - 19644:9644
+
   console:
     image: docker.redpanda.com/redpandadata/console:v2.5.2
     entrypoint: /bin/sh
@@ -44,3 +46,38 @@ services:
           clusters:
             - name: local-connect-cluster
               url: http://connect:8083
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: github_events
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d
+
+  producer:
+    build: .
+    command: ["python3", "main.py"]
+    depends_on:
+      - kafka-broker
+      - postgres
+    environment:
+      - POSTGRES_DB=github_events
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - RUN_MODE=producer
+
+  consumer:
+    build: .
+    command: ["python3", "consumer.py"]
+    depends_on:
+      - kafka-broker
+      - postgres
+    environment:
+      - POSTGRES_DB=github_events
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - RUN_MODE=consumer

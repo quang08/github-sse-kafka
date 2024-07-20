@@ -12,7 +12,7 @@ def main():
     logging.info("START")
 
     app = Application(
-            broker_address='localhost:19092',
+            broker_address='kafka-broker:9092',
             loglevel="DEBUG",
             producer_extra_config={
                 # measure  

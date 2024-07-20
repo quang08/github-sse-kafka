@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set the command to run your application
-ENTRYPOINT ["python3", "main.py"]
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]
