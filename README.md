@@ -2,7 +2,7 @@
 ETL (Extract, Transform, Load) pipeline using various technologies to extract data from the [GitHub Firehose API](https://github-firehose.libraries.io/), transform it, and load it into a PostgreSQL database.
 
 ## Design:
-![design](https://github.com/user-attachments/assets/d26577b6-8e81-472a-ad8c-e1fd9006bae9)
+![design](https://github.com/user-attachments/assets/4f6eb644-afe4-4d38-870b-a371551f3512)
 
 ## Source:
 - **[GitHub Firehose API](https://github-firehose.libraries.io/)**: Provides a real-time stream of public events from GitHub.
@@ -10,11 +10,13 @@ ETL (Extract, Transform, Load) pipeline using various technologies to extract da
 ## Technologies Used:
 - **PostgreSQL**: Stores the transformed data from the GitHub Firehose API.
 - **Kafka**: Serves as the message queue.
+- **Spark**: Used for processing and transforming the data in real-time.
 - **Docker**: Orchestrates services.
 
-## Library Used:
+## Libraries Used:
 - **[Quix](https://quix.io/docs/quix-streams/api-reference/kafka.html#consumerconsumer_group_metadata)**: Quix is a library for building and managing streaming data pipelines. It simplifies the interaction with Kafka, providing a high-level API for producing and consuming messages.
 - **requests-sse**: Python library for handling Server-Sent Events (SSE) with the Requests library.
+- **PySpark**: Python API for Spark, used for building and running Spark applications.
 
 ## Tweaks: Configuration for Kafka Performance
 
