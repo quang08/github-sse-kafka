@@ -1,68 +1,92 @@
 import logging
-import json
-import psycopg2
-from quixstreams import Application
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, LongType, TimestampType
+from pyspark.sql.functions import from_json, col, to_json, struct
 
-def transform_data(data):
-    return {
-        'id': data['id'],
-        'event_type': data['type'],
-        'event_data': json.dumps(data)
-    }
-
-def push_to_postgres(data, conn):
-    logging.debug("Pushing to Postgres: %s", data)
-    with conn.cursor() as cursor:
-        cursor.execute("""
-            INSERT INTO github_events (id, event_type, event_data) 
-            VALUES (%s, %s, %s)
+def write_to_psql(batch_df, batch_id):
+    batch_df.write \
+        .format("jdbc") \
+        .option("url", "jdbc:postgresql://postgres:5432/github_events") \
+        .option("dbtable", "github_events") \
+        .option("user", "postgres") \
+        .option("password", "postgres") \
+        .option("driver", "org.postgresql.Driver") \
+        .option("stringtype", "unspecified") \
+        .option("customTableQuery", """
+            INSERT INTO github_events (id, event_type, created_at, actor_id, actor_login, repo_id, repo_name, event_data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO NOTHING
-        """, (data['id'], data['event_type'], data['event_data'])
-        )
-
-    conn.commit()
+        """) \
+        .mode("append") \
+        .save()
 
 def main():
     logging.info("START")
-    # establish connection with postgres
-    conn = psycopg2.connect(
-        dbname = "github_events",
-        user = 'postgres',
-        password = 'postgres',
-        host = 'postgres' #?
+
+    # Init Spark session
+    spark = SparkSession.builder \
+        .appName("GithubEventsProcessor") \
+        .config("spark.jars", "/app/jars/postgresql-42.7.3.jar") \
+        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2") \
+        .getOrCreate()
+
+    # Define schema
+    schema = StructType([
+        StructField("id", StringType(), True),
+        StructField("type", StringType(), True),
+        StructField("created_at", StringType(), True),
+        StructField("actor", StructType([
+            StructField("id", IntegerType(), True),
+            StructField("login", StringType(), True)
+        ]), True),
+        StructField("repo", StructType([
+            StructField("id", IntegerType(), True),
+            StructField("name", StringType(), True)
+        ]), True),
+        StructField("payload", StructType([
+            StructField("before", StringType(), True),
+            StructField("commits", StringType(), True),
+            StructField("distinct_size", IntegerType(), True),
+            StructField("head", StringType(), True),
+            StructField("push_id", LongType(), True),
+            StructField("ref", StringType(), True),
+            StructField("repository_id", IntegerType(), True),
+            StructField("size", IntegerType(), True)
+        ]), True)
+    ])
+
+    # Read from Kafka
+    kafka_df = spark.readStream \
+        .format('kafka') \
+        .option('kafka.bootstrap.servers', 'kafka-broker:9092') \
+        .option('subscribe', 'github_events') \
+        .load()
+
+    # Parse JSON 
+    parsed_df = kafka_df.selectExpr("CAST(value AS STRING) as json") \
+        .select(from_json(col('json'), schema).alias('data')) \
+        .select('data.*')
+
+    # Flatten nested fields
+    flattened_df = parsed_df.select(
+        col("id"),
+        col("type").alias("event_type"),
+        col("created_at").cast(TimestampType()),
+        col("actor.id").alias('actor_id'),
+        col("actor.login").alias('actor_login'),
+        col("repo.id").alias('repo_id'),
+        col("repo.name").alias('repo_name'),
+        to_json(struct("payload")).alias("event_data")  # Convert payload struct to JSON string
     )
 
-    # connect to kafka
-    app = Application(
-        broker_address='kafka-broker:9092',
-        loglevel="DEBUG",
-        consumer_group="github_events_group", #?
-        auto_offset_reset="latest",
-    )
-    
-    # create kafka consumer and sub to topic
-    with app.get_consumer() as consumer:
-        consumer.subscribe(["github_events"])
+    # Stream query
+    query = flattened_df.writeStream \
+        .foreachBatch(write_to_psql) \
+        .start()
 
-        while True:
-            msg = consumer.poll(1)
+    query.awaitTermination()
 
-            if msg is None:
-                logging.debug("Waiting for messages...")
-            elif msg.error() is not None:
-                raise Exception(msg.error())
-            else:
-                key = msg.key().decode('utf8')
-                value = json.loads(msg.value())
-                offset = msg.offset()
-
-                logging.debug(f'Consumed: {offset} {key} {value}')
-
-                transformed_data = transform_data(value)
-                push_to_postgres(transformed_data, conn)
-                consumer.store_offsets(msg)    
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         logging.basicConfig(level=logging.DEBUG)
         main()

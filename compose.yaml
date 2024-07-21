@@ -57,6 +57,18 @@ services:
       - 5432:5432
     volumes:
       - ./sql:/docker-entrypoint-initdb.d
+  
+  # test-db:
+  #   build: .
+  #   command: ["python3", "test-connection.py"]
+  #   depends_on:
+  #     - kafka-broker
+  #     - postgres
+  #   environment:
+  #     - POSTGRES_DB=github_events
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - RUN_MODE=test-db
 
   producer:
     build: .
@@ -88,3 +100,6 @@ services:
       - SPARK_MODE=master
     ports:
       - "8089:8089"
+    command: bash -c "spark-submit --jars /app/jars/postgresql-42.7.3.jar --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 /app/consumer.py"
+    volumes:
+      - .:/app

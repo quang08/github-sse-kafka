@@ -5,9 +5,11 @@ confluent-kafka==2.4.0
 idna==3.7
 orjson==3.10.6
 psycopg2-binary==2.9.9
+py4j==0.10.9.7
 pydantic==2.7.4
 pydantic-settings==2.3.4
 pydantic_core==2.18.4
+pyspark==3.5.1
 python-dotenv==1.0.1
 quixstreams==2.7.0
 requests==2.32.3

@@ -5,6 +5,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=UTF-8
 
+ENV SPARK_VERSION=3.1.2
+ENV HADOOP_VERSION=2.7
+
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -19,6 +22,9 @@ RUN apt-get update && apt-get install -y openjdk-11-jdk-headless && \
 
 # Copy the rest of the application
 COPY . .
+
+# Copy the jars directory
+COPY ./jars ./jars
 
 # Set the command to run your application
 ENTRYPOINT ["sh", "/app/entrypoint.sh"]
