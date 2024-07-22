@@ -31,6 +31,7 @@ def main():
         .appName("GithubEventsProcessor") \
         .config("spark.jars", "/app/jars/postgresql-42.7.3.jar") \
         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2") \
+        .config("spark.sql.streaming.schemaInference", "true") \
         .getOrCreate()
 
     # Define schema
@@ -63,6 +64,7 @@ def main():
         .format('kafka') \
         .option('kafka.bootstrap.servers', 'kafka-broker:9092') \
         .option('subscribe', 'github_events') \
+        .option('mergeSchema', 'true') \
         .load()
 
     # Parse JSON 
