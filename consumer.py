@@ -4,21 +4,24 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 from pyspark.sql.functions import from_json, col, to_json, struct
 
 def write_to_psql(batch_df, batch_id):
-    batch_df.write \
-        .format("jdbc") \
-        .option("url", "jdbc:postgresql://postgres:5432/github_events") \
-        .option("dbtable", "github_events") \
-        .option("user", "postgres") \
-        .option("password", "postgres") \
-        .option("driver", "org.postgresql.Driver") \
-        .option("stringtype", "unspecified") \
-        .option("customTableQuery", """
-            INSERT INTO github_events (id, event_type, created_at, actor_id, actor_login, repo_id, repo_name, event_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (id) DO NOTHING
-        """) \
-        .mode("append") \
-        .save()
+    try:
+        batch_df.write \
+            .format("jdbc") \
+            .option("url", "jdbc:postgresql://postgres:5432/github_events") \
+            .option("dbtable", "github_events") \
+            .option("user", "postgres") \
+            .option("password", "postgres") \
+            .option("driver", "org.postgresql.Driver") \
+            .option("stringtype", "unspecified") \
+            .option("customTableQuery", """
+                INSERT INTO github_events (id, event_type, created_at, actor_id, actor_login, repo_id, repo_name, event_data)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO NOTHING
+            """) \
+            .mode("append") \
+            .save()
+    except Exception as e:
+        logging.error(f'Error writing batch ${batch_id} to PostgreSQL: ${e}', exc_info=True)
 
 def main():
     logging.info("START")
